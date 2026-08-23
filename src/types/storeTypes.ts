@@ -1,0 +1,36 @@
+export interface StoreBranch {
+  id: string;
+  code: string;
+  name: string;
+  address: string;
+  phone: string;
+  city: string;
+}
+
+export interface StoreProduct {
+  id: string;
+  branchId: string;
+  name: string;
+  category: 'sembako' | 'minuman_snack' | 'kebersihan' | 'promo_kasir' | 'all';
+  originalPrice: number;
+  promoPrice: number;
+  unit: string;
+  imageUrl?: string;
+  inStock: boolean;
+  isFeatured?: boolean;
+}
+
+export interface StoreVoucher {
+  id: string;
+  branchId: string;
+  code: string;
+  discountAmount: number;
+  minSpend: number;
+  validUntil: string;
+  description: string;
+}
+
+export interface CartItem {
+  product: StoreProduct;
+  quantity: number;
+}
