@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { Ticket, Clock, CheckCircle2, AlertCircle, Sparkles, Users } from 'lucide-react';
+import { Ticket, Clock, CheckCircle2, Users, Sparkles } from 'lucide-react';
 import { StoreVoucher } from '../../types/storeTypes';
 import { formatRupiah } from '../../utils/formatters';
 
@@ -112,13 +112,19 @@ export const VoucherClaimCard: React.FC<VoucherClaimCardProps> = ({
               }`}
             >
               <div className="space-y-1 min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 font-mono font-black text-[10px] tracking-wider">
                     {v.code}
                   </span>
                   <span className="text-xs font-black text-emerald-400">
                     Hemat {formatRupiah(v.discountAmount)}
                   </span>
+                  {v.sponsorName && (
+                    <span className="px-1.5 py-0.5 rounded bg-blue-950/80 text-blue-300 border border-blue-800/80 text-[9px] font-bold flex items-center gap-0.5">
+                      <Sparkles className="w-2.5 h-2.5 text-blue-400" />
+                      {v.sponsorName}
+                    </span>
+                  )}
                 </div>
 
                 <p className="text-[10px] text-slate-300">
