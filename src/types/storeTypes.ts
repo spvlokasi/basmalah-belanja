@@ -29,7 +29,11 @@ export interface StoreVoucher {
   code: string;
   discountAmount: number;
   minSpend: number;
+  quota: number;
+  claimedCount?: number;
+  usedCount?: number;
   validUntil: string;
+  isActive?: boolean;
   description: string;
 }
 

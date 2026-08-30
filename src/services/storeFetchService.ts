@@ -20,8 +20,8 @@ export const FALLBACK_PRODUCTS: StoreProduct[] = [
 ];
 
 export const FALLBACK_VOUCHERS: StoreVoucher[] = [
-  { id: 'v1', branchId: 'all', code: 'BERKAH5K', discountAmount: 5000, minSpend: 50000, validUntil: '2026-12-31', description: 'Potongan Rp 5.000 min. belanja Rp 50.000' },
-  { id: 'v2', branchId: 'all', code: 'JUMATHEMAT', discountAmount: 3000, minSpend: 35000, validUntil: '2026-12-31', description: 'Voucher hemat belanja akhir pekan min. Rp 35.000' }
+  { id: 'v1', branchId: 'all', code: 'BERKAH5K', discountAmount: 5000, minSpend: 50000, quota: 50, claimedCount: 8, usedCount: 4, validUntil: '2026-12-31', isActive: true, description: 'Potongan Rp 5.000 min. belanja Rp 50.000' },
+  { id: 'v2', branchId: 'all', code: 'JUMATHEMAT', discountAmount: 3000, minSpend: 35000, quota: 30, claimedCount: 5, usedCount: 2, validUntil: '2026-12-31', isActive: true, description: 'Voucher hemat belanja akhir pekan min. Rp 35.000' }
 ];
 
 export const fetchStoreBranches = async (): Promise<StoreBranch[]> => {
