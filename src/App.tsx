@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { StoreBranch, StoreProduct, StoreVoucher, CartItem } from './types/storeTypes';
-import { fetchStoreBranches, FALLBACK_BRANCHES, FALLBACK_PRODUCTS, FALLBACK_VOUCHERS } from './services/storeFetchService';
+import { fetchStoreBranches, fetchStoreProducts, fetchStoreVouchers, FALLBACK_BRANCHES, FALLBACK_PRODUCTS, FALLBACK_VOUCHERS } from './services/storeFetchService';
 import { StoreNavbar } from './components/layout/StoreNavbar';
 import { BranchSelectorModal } from './components/layout/BranchSelectorModal';
 import { PromoHeroBanner } from './components/promo/PromoHeroBanner';
@@ -19,7 +19,7 @@ export const App: React.FC = () => {
   const [vouchers, setVouchers] = useState<StoreVoucher[]>(FALLBACK_VOUCHERS);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [appliedVoucher, setAppliedVoucher] = useState<StoreVoucher | null>(FALLBACK_VOUCHERS[0]);
+  const [appliedVoucher, setAppliedVoucher] = useState<StoreVoucher | null>(null);
   const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
@@ -38,6 +38,13 @@ export const App: React.FC = () => {
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (currentBranch) {
+      fetchStoreProducts(currentBranch.id).then((pList) => setProducts(pList));
+      fetchStoreVouchers(currentBranch.id).then((vList) => setVouchers(vList));
+    }
+  }, [currentBranch]);
 
   const handleAddToCart = (product: StoreProduct) => {
     const existing = cart.find((i) => i.product.id === product.id);
