@@ -2,6 +2,7 @@
 import { ShoppingBag, X, Plus, Minus, Send, Tag } from 'lucide-react';
 import { StoreBranch, CartItem, StoreVoucher } from '../../types/storeTypes';
 import { formatRupiah } from '../../utils/formatters';
+import { supabase } from '../../services/supabaseClient';
 
 interface CartDrawerProps {
   branch: StoreBranch;
@@ -21,7 +22,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const discount = appliedVoucher && subtotal >= appliedVoucher.minSpend ? appliedVoucher.discountAmount : 0;
   const grandTotal = Math.max(0, subtotal - discount);
 
-  const handleCheckoutWA = () => {
+  const handleCheckoutWA = async () => {
     if (!buyerName.trim() || !address.trim()) {
       alert('Silakan masukkan nama dan alamat pengiriman Anda terlebih dahulu.');
       return;
@@ -39,8 +40,37 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       }
     }
 
+    // Catat Pesanan Masuk (Order Logs)
+    const orderData = {
+      id: `ORD-${Date.now().toString().slice(-6)}`,
+      branch_id: branch.id,
+      branch_code: branch.code,
+      branch_name: branch.name,
+      buyer_name: buyerName.trim(),
+      address: address.trim(),
+      items: items.map((i) => ({ name: i.product.name, qty: i.quantity, price: i.product.promoPrice })),
+      subtotal,
+      discount,
+      voucher_code: appliedVoucher?.code || null,
+      grand_total: grandTotal,
+      created_at: new Date().toISOString(),
+      status: 'pending_delivery'
+    };
+
+    try {
+      const rawOrders = localStorage.getItem('basmalah_customer_orders');
+      const orderList = rawOrders ? JSON.parse(rawOrders) : [];
+      localStorage.setItem('basmalah_customer_orders', JSON.stringify([orderData, ...orderList]));
+
+      // Kirim juga ke Supabase jika tabel online_orders tersedia
+      await supabase.from('online_orders').insert([orderData]).select().maybeSingle();
+    } catch {
+      // Graceful fallback
+    }
+
     const lines = items.map((i) => `• ${i.quantity}x ${i.product.name} (${formatRupiah(i.product.promoPrice * i.quantity)})`);
     let msg = `*PESANAN BELANJA ONLINE TOKOBASMALAH*\n` +
+      `🆔 No. Order: ${orderData.id}\n` +
       `🏪 Gerai: ${branch.name}\n` +
       `👤 Pembeli: ${buyerName.trim()}\n` +
       `📍 Alamat Antar: ${address.trim()}\n\n` +

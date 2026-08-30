@@ -5,6 +5,7 @@ import { StoreNavbar } from './components/layout/StoreNavbar';
 import { BranchSelectorModal } from './components/layout/BranchSelectorModal';
 import { PromoHeroBanner } from './components/promo/PromoHeroBanner';
 import { VoucherClaimCard } from './components/promo/VoucherClaimCard';
+import { SearchBar } from './components/catalog/SearchBar';
 import { CategoryFilterTabs } from './components/catalog/CategoryFilterTabs';
 import { ProductCard } from './components/catalog/ProductCard';
 import { CartDrawer } from './components/cart/CartDrawer';
@@ -18,6 +19,7 @@ export const App: React.FC = () => {
   const [products, setProducts] = useState<StoreProduct[]>(FALLBACK_PRODUCTS);
   const [vouchers, setVouchers] = useState<StoreVoucher[]>(FALLBACK_VOUCHERS);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [appliedVoucher, setAppliedVoucher] = useState<StoreVoucher | null>(null);
   const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
@@ -57,7 +59,14 @@ export const App: React.FC = () => {
     else setCart(cart.map((i) => (i.product.id === prodId ? { ...i, quantity: qty } : i)));
   };
 
-  const filteredProducts = products.filter((p) => selectedCategory === 'all' || p.category === selectedCategory);
+  // Filter gabungan Kategori & Pencarian Kata Kunci
+  const filteredProducts = products.filter((p) => {
+    const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch = !q || p.name.toLowerCase().includes(q) || p.unit.toLowerCase().includes(q);
+    return matchesCategory && matchesSearch;
+  });
+
   const cartCounts = cart.reduce((acc, i) => ({ ...acc, [i.product.id]: i.quantity }), {} as Record<string, number>);
   const totalItems = cart.reduce((sum, i) => sum + i.quantity, 0);
   const subtotal = cart.reduce((sum, i) => sum + i.product.promoPrice * i.quantity, 0);
@@ -65,15 +74,42 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       <StoreNavbar currentBranch={currentBranch} isLockedBranch={isLockedBranch} onOpenBranchPicker={() => setIsBranchModalOpen(true)} />
-      <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-5">
+      <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-4">
         <PromoHeroBanner branch={currentBranch} />
         <VoucherClaimCard vouchers={vouchers} appliedCode={appliedVoucher?.code || null} onApplyVoucher={(v) => setAppliedVoucher(v)} />
-        <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between"><h3 className="text-sm font-black text-white tracking-tight">Katalog Sembako & Promo Hemat:</h3><span className="text-[11px] text-emerald-400 font-semibold">{filteredProducts.length} Produk</span></div>
-          <CategoryFilterTabs selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {filteredProducts.map((p) => (<ProductCard key={p.id} product={p} cartCount={cartCounts[p.id] || 0} onAddToCart={handleAddToCart} />))}
+        
+        {/* Kolom Pencarian Cepat Produk */}
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          onClear={() => setSearchQuery('')}
+          totalResults={filteredProducts.length}
+        />
+
+        <div className="space-y-3 pt-1">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black text-white tracking-tight">Katalog Sembako & Promo Hemat:</h3>
+            <span className="text-[11px] text-emerald-400 font-semibold">{filteredProducts.length} Produk</span>
           </div>
+          <CategoryFilterTabs selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
+          {filteredProducts.length === 0 ? (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-2">
+              <p className="text-xs text-slate-400">Tidak ada produk yang cocok dengan pencarian <strong>"{searchQuery}"</strong></p>
+              <button
+                type="button"
+                onClick={() => { setSearchQuery(''); setSelectedCategory('all'); }}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-bold border border-slate-700"
+              >
+                Reset Filter Pencarian
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {filteredProducts.map((p) => (
+                <ProductCard key={p.id} product={p} cartCount={cartCounts[p.id] || 0} onAddToCart={handleAddToCart} />
+              ))}
+            </div>
+          )}
         </div>
         <StoreFooter branch={currentBranch} />
       </main>
