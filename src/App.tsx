@@ -58,13 +58,21 @@ export const App: React.FC = () => {
     else setCart(cart.map((i) => (i.product.id === prodId ? { ...i, quantity: qty } : i)));
   };
 
-  // Cek apakah produk memiliki sponsor voucher yang cocok
-  const isProductHasVoucher = (productName: string) => {
-    const nameLower = productName.toLowerCase();
+  // Cek apakah HANYA produk tertentu yang memiliki kupon spesifik
+  const isProductHasVoucher = (product: StoreProduct) => {
+    const nameLower = product.name.toLowerCase();
     return vouchers.some((v) => {
-      if (!v.sponsorName) return false;
-      const sLower = v.sponsorName.toLowerCase();
-      return nameLower.includes(sLower);
+      if (v.isActive === false) return false;
+      // Jika voucher sponsor brand (misal: Yakult atau Kanzler), HANYA produk bersangkutan yang bertanda kupon
+      if (v.sponsorName) {
+        const sLower = v.sponsorName.toLowerCase();
+        return nameLower.includes(sLower);
+      }
+      // Jika voucher khusus kategori tertentu (bukan all)
+      if (v.applicableCategory && v.applicableCategory !== 'all') {
+        return product.category === v.applicableCategory;
+      }
+      return false;
     });
   };
 
@@ -119,7 +127,7 @@ export const App: React.FC = () => {
                   key={p.id}
                   product={p}
                   cartCount={cartCounts[p.id] || 0}
-                  hasVoucher={isProductHasVoucher(p.name)}
+                  hasVoucher={isProductHasVoucher(p)}
                   onAddToCart={handleAddToCart}
                 />
               ))}

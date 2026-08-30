@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { ShoppingBag, X, Plus, Minus, Send, Tag, Sparkles, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { ShoppingBag, X, Plus, Minus, Send, Tag, Sparkles, Check, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import { StoreBranch, CartItem, StoreVoucher } from '../../types/storeTypes';
 import { formatRupiah } from '../../utils/formatters';
 import { supabase } from '../../services/supabaseClient';
@@ -22,7 +22,49 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const [showVoucherSelector, setShowVoucherSelector] = useState(true);
 
   const subtotal = items.reduce((sum, i) => sum + i.product.promoPrice * i.quantity, 0);
-  const discount = appliedVoucher && subtotal >= appliedVoucher.minSpend ? appliedVoucher.discountAmount : 0;
+
+  // Evaluasi Kelayakan Voucher secara Cerdas & Kontekstual
+  const checkVoucherEligibility = (v: StoreVoucher) => {
+    // 1. Cek Syarat Produk Sponsor Brand (misal: Yakult atau Kanzler)
+    if (v.sponsorName) {
+      const sLower = v.sponsorName.toLowerCase();
+      const hasSponsorItem = items.some((i) => i.product.name.toLowerCase().includes(sLower));
+      if (!hasSponsorItem) {
+        return {
+          isEligible: false,
+          reason: `Khusus pembelian produk ${v.sponsorName} (Tambahkan produk ${v.sponsorName} ke keranjang)`
+        };
+      }
+    }
+
+    // 2. Cek Syarat Kategori Produk
+    if (v.applicableCategory && v.applicableCategory !== 'all') {
+      const hasCategoryItem = items.some((i) => i.product.category === v.applicableCategory);
+      if (!hasCategoryItem) {
+        return {
+          isEligible: false,
+          reason: `Khusus produk kategori ${v.applicableCategory}`
+        };
+      }
+    }
+
+    // 3. Cek Syarat Minimal Belanja
+    if (subtotal < v.minSpend) {
+      return {
+        isEligible: false,
+        reason: `Belanja ${formatRupiah(v.minSpend - subtotal)} lagi untuk pakai kupon ini`
+      };
+    }
+
+    return {
+      isEligible: true,
+      reason: `✓ Syarat terpenuhi (Hemat ${formatRupiah(v.discountAmount)})`
+    };
+  };
+
+  const currentVoucherCheck = appliedVoucher ? checkVoucherEligibility(appliedVoucher) : null;
+  const isCurrentVoucherValid = currentVoucherCheck?.isEligible ?? false;
+  const discount = isCurrentVoucherValid && appliedVoucher ? appliedVoucher.discountAmount : 0;
   const grandTotal = Math.max(0, subtotal - discount);
 
   const handleCheckoutWA = async () => {
@@ -32,7 +74,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     }
 
     // Tandai voucher telah resmi dipakai belanja di localStorage
-    if (appliedVoucher) {
+    if (appliedVoucher && isCurrentVoucherValid) {
       try {
         const raw = localStorage.getItem('basmalah_claimed_vouchers');
         const claims = raw ? JSON.parse(raw) : {};
@@ -54,7 +96,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       items: items.map((i) => ({ name: i.product.name, qty: i.quantity, price: i.product.promoPrice })),
       subtotal,
       discount,
-      voucher_code: appliedVoucher?.code || null,
+      voucher_code: isCurrentVoucherValid ? appliedVoucher?.code || null : null,
       grand_total: grandTotal,
       created_at: new Date().toISOString(),
       status: 'pending_delivery'
@@ -138,13 +180,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               >
                 <span className="font-extrabold text-xs text-amber-400 flex items-center gap-1.5">
                   <Tag className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Kupon Diskon Tersedia ({activeVouchers.length})</span>
+                  <span>Pilih Kupon Diskon ({activeVouchers.length})</span>
                 </span>
                 <div className="flex items-center gap-1 text-[11px] text-slate-400">
-                  {appliedVoucher ? (
+                  {appliedVoucher && isCurrentVoucherValid ? (
                     <span className="text-emerald-400 font-bold font-mono">-{formatRupiah(discount)}</span>
                   ) : (
-                    <span>Pilih Kupon</span>
+                    <span>Lihat Kupon</span>
                   )}
                   {showVoucherSelector ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                 </div>
@@ -153,17 +195,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               {showVoucherSelector && (
                 <div className="space-y-1.5 pt-1 border-t border-slate-800">
                   {activeVouchers.map((v) => {
-                    const isEligible = subtotal >= v.minSpend;
+                    const check = checkVoucherEligibility(v);
                     const isSelected = appliedVoucher?.code === v.code;
                     return (
                       <div
                         key={v.id}
                         className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition-all ${
-                          isSelected
+                          isSelected && check.isEligible
                             ? 'bg-emerald-950/70 border-emerald-500 text-white'
-                            : isEligible
+                            : check.isEligible
                             ? 'bg-slate-900 border-slate-700 hover:border-slate-600'
-                            : 'bg-slate-900/60 border-slate-800 opacity-60'
+                            : 'bg-slate-900/60 border-slate-800/80 opacity-75'
                         }`}
                       >
                         <div className="min-w-0 flex-1">
@@ -181,26 +223,24 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                               </span>
                             )}
                           </div>
-                          <p className="text-[10px] text-slate-400 mt-1">
-                            {isEligible
-                              ? `✓ Min. belanja ${formatRupiah(v.minSpend)} terpenuhi`
-                              : `Belanja ${formatRupiah(v.minSpend - subtotal)} lagi untuk pakai kupon ini`}
+                          <p className={`text-[10px] mt-1 ${check.isEligible ? 'text-emerald-400 font-semibold' : 'text-slate-400'}`}>
+                            {check.reason}
                           </p>
                         </div>
 
                         <button
                           type="button"
-                          disabled={!isEligible}
+                          disabled={!check.isEligible}
                           onClick={() => onSelectVoucher(isSelected ? null : v)}
-                          className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all ${
-                            isSelected
+                          className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all flex-shrink-0 ${
+                            isSelected && check.isEligible
                               ? 'bg-emerald-500 text-slate-950 shadow-md'
-                              : isEligible
+                              : check.isEligible
                               ? 'bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 shadow-md shadow-amber-950/60 active:scale-95'
                               : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
                           }`}
                         >
-                          {isSelected ? '✓ Terpakai' : 'Gunakan'}
+                          {isSelected && check.isEligible ? '✓ Terpakai' : 'Gunakan'}
                         </button>
                       </div>
                     );
