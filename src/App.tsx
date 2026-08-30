@@ -4,7 +4,6 @@ import { fetchStoreBranches, fetchStoreProducts, fetchStoreVouchers, FALLBACK_BR
 import { StoreNavbar } from './components/layout/StoreNavbar';
 import { BranchSelectorModal } from './components/layout/BranchSelectorModal';
 import { PromoHeroBanner } from './components/promo/PromoHeroBanner';
-import { VoucherClaimCard } from './components/promo/VoucherClaimCard';
 import { SearchBar } from './components/catalog/SearchBar';
 import { CategoryFilterTabs } from './components/catalog/CategoryFilterTabs';
 import { ProductCard } from './components/catalog/ProductCard';
@@ -59,6 +58,16 @@ export const App: React.FC = () => {
     else setCart(cart.map((i) => (i.product.id === prodId ? { ...i, quantity: qty } : i)));
   };
 
+  // Cek apakah produk memiliki sponsor voucher yang cocok
+  const isProductHasVoucher = (productName: string) => {
+    const nameLower = productName.toLowerCase();
+    return vouchers.some((v) => {
+      if (!v.sponsorName) return false;
+      const sLower = v.sponsorName.toLowerCase();
+      return nameLower.includes(sLower);
+    });
+  };
+
   // Filter gabungan Kategori & Pencarian Kata Kunci
   const filteredProducts = products.filter((p) => {
     const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
@@ -75,8 +84,8 @@ export const App: React.FC = () => {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       <StoreNavbar currentBranch={currentBranch} isLockedBranch={isLockedBranch} onOpenBranchPicker={() => setIsBranchModalOpen(true)} />
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-4">
+        {/* Banner Status & Badge Layanan */}
         <PromoHeroBanner branch={currentBranch} />
-        <VoucherClaimCard vouchers={vouchers} appliedCode={appliedVoucher?.code || null} onApplyVoucher={(v) => setAppliedVoucher(v)} />
         
         {/* Kolom Pencarian Cepat Produk */}
         <SearchBar
@@ -106,7 +115,13 @@ export const App: React.FC = () => {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {filteredProducts.map((p) => (
-                <ProductCard key={p.id} product={p} cartCount={cartCounts[p.id] || 0} onAddToCart={handleAddToCart} />
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  cartCount={cartCounts[p.id] || 0}
+                  hasVoucher={isProductHasVoucher(p.name)}
+                  onAddToCart={handleAddToCart}
+                />
               ))}
             </div>
           )}
@@ -116,7 +131,17 @@ export const App: React.FC = () => {
 
       <FloatingCartBar totalItems={totalItems} subtotal={subtotal} onOpenCart={() => setIsCartOpen(true)} />
       {!isLockedBranch && isBranchModalOpen && <BranchSelectorModal branches={branches} currentBranchId={currentBranch.id} onSelectBranch={setCurrentBranch} onClose={() => setIsBranchModalOpen(false)} />}
-      {isCartOpen && <CartDrawer branch={currentBranch} items={cart} appliedVoucher={appliedVoucher} onUpdateQty={handleUpdateQty} onClose={() => setIsCartOpen(false)} />}
+      {isCartOpen && (
+        <CartDrawer
+          branch={currentBranch}
+          items={cart}
+          vouchers={vouchers}
+          appliedVoucher={appliedVoucher}
+          onSelectVoucher={setAppliedVoucher}
+          onUpdateQty={handleUpdateQty}
+          onClose={() => setIsCartOpen(false)}
+        />
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { ShoppingBag, X, Plus, Minus, Send, Tag } from 'lucide-react';
+import { ShoppingBag, X, Plus, Minus, Send, Tag, Sparkles, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { StoreBranch, CartItem, StoreVoucher } from '../../types/storeTypes';
 import { formatRupiah } from '../../utils/formatters';
 import { supabase } from '../../services/supabaseClient';
@@ -7,16 +7,19 @@ import { supabase } from '../../services/supabaseClient';
 interface CartDrawerProps {
   branch: StoreBranch;
   items: CartItem[];
+  vouchers: StoreVoucher[];
   appliedVoucher: StoreVoucher | null;
+  onSelectVoucher: (voucher: StoreVoucher | null) => void;
   onUpdateQty: (prodId: string, qty: number) => void;
   onClose: () => void;
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({
-  branch, items, appliedVoucher, onUpdateQty, onClose
+  branch, items, vouchers, appliedVoucher, onSelectVoucher, onUpdateQty, onClose
 }) => {
   const [buyerName, setBuyerName] = useState('');
   const [address, setAddress] = useState('');
+  const [showVoucherSelector, setShowVoucherSelector] = useState(true);
 
   const subtotal = items.reduce((sum, i) => sum + i.product.promoPrice * i.quantity, 0);
   const discount = appliedVoucher && subtotal >= appliedVoucher.minSpend ? appliedVoucher.discountAmount : 0;
@@ -85,6 +88,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
+  const activeVouchers = vouchers.filter((v) => v.isActive !== false);
+
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex justify-end">
       <div className="bg-slate-900 border-l border-slate-800 w-full max-w-md h-full flex flex-col justify-between p-4 sm:p-5 shadow-2xl animate-in slide-in-from-right">
@@ -98,27 +103,111 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-3 space-y-2.5">
+        <div className="flex-1 overflow-y-auto py-3 space-y-3">
+          {/* Daftar Barang */}
           {items.length === 0 ? (
             <p className="text-center text-xs text-slate-500 py-10">Keranjang belanja Anda masih kosong.</p>
           ) : (
-            items.map((i) => (
-              <div key={i.product.id} className="bg-slate-850 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <h5 className="text-xs font-bold text-slate-200 truncate">{i.product.name}</h5>
-                  <div className="text-[11px] text-emerald-400 font-mono font-semibold">{formatRupiah(i.product.promoPrice)}</div>
+            <div className="space-y-2">
+              {items.map((i) => (
+                <div key={i.product.id} className="bg-slate-850 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h5 className="text-xs font-bold text-slate-200 truncate">{i.product.name}</h5>
+                    <div className="text-[11px] text-emerald-400 font-mono font-semibold">{formatRupiah(i.product.promoPrice)}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => onUpdateQty(i.product.id, i.quantity - 1)} className="p-1 rounded-lg bg-slate-800 text-slate-300">
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="text-xs font-bold text-white font-mono">{i.quantity}</span>
+                    <button onClick={() => onUpdateQty(i.product.id, i.quantity + 1)} className="p-1 rounded-lg bg-slate-800 text-slate-300">
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => onUpdateQty(i.product.id, i.quantity - 1)} className="p-1 rounded-lg bg-slate-800 text-slate-300">
-                    <Minus className="w-3 h-3" />
-                  </button>
-                  <span className="text-xs font-bold text-white font-mono">{i.quantity}</span>
-                  <button onClick={() => onUpdateQty(i.product.id, i.quantity + 1)} className="p-1 rounded-lg bg-slate-800 text-slate-300">
-                    <Plus className="w-3 h-3" />
-                  </button>
+              ))}
+            </div>
+          )}
+
+          {/* Pilihan Kupon Diskon Pintar di Dalam Keranjang */}
+          {items.length > 0 && activeVouchers.length > 0 && (
+            <div className="bg-slate-850 rounded-2xl border border-slate-800 p-3 space-y-2">
+              <div
+                className="flex items-center justify-between cursor-pointer"
+                onClick={() => setShowVoucherSelector(!showVoucherSelector)}
+              >
+                <span className="font-extrabold text-xs text-amber-400 flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Kupon Diskon Tersedia ({activeVouchers.length})</span>
+                </span>
+                <div className="flex items-center gap-1 text-[11px] text-slate-400">
+                  {appliedVoucher ? (
+                    <span className="text-emerald-400 font-bold font-mono">-{formatRupiah(discount)}</span>
+                  ) : (
+                    <span>Pilih Kupon</span>
+                  )}
+                  {showVoucherSelector ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                 </div>
               </div>
-            ))
+
+              {showVoucherSelector && (
+                <div className="space-y-1.5 pt-1 border-t border-slate-800">
+                  {activeVouchers.map((v) => {
+                    const isEligible = subtotal >= v.minSpend;
+                    const isSelected = appliedVoucher?.code === v.code;
+                    return (
+                      <div
+                        key={v.id}
+                        className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition-all ${
+                          isSelected
+                            ? 'bg-emerald-950/70 border-emerald-500 text-white'
+                            : isEligible
+                            ? 'bg-slate-900 border-slate-700 hover:border-slate-600'
+                            : 'bg-slate-900/60 border-slate-800 opacity-60'
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-mono font-black text-[9px]">
+                              {v.code}
+                            </span>
+                            <strong className="text-emerald-400 font-black text-[11px]">
+                              Hemat {formatRupiah(v.discountAmount)}
+                            </strong>
+                            {v.sponsorName && (
+                              <span className="text-[9px] text-blue-300 bg-blue-950/80 px-1.5 py-0.2 rounded border border-blue-800/80 font-bold flex items-center gap-0.5">
+                                <Sparkles className="w-2.5 h-2.5 text-blue-400" />
+                                {v.sponsorName}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-slate-400 mt-1">
+                            {isEligible
+                              ? `✓ Min. belanja ${formatRupiah(v.minSpend)} terpenuhi`
+                              : `Belanja ${formatRupiah(v.minSpend - subtotal)} lagi untuk pakai kupon ini`}
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          disabled={!isEligible}
+                          onClick={() => onSelectVoucher(isSelected ? null : v)}
+                          className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all ${
+                            isSelected
+                              ? 'bg-emerald-500 text-slate-950 shadow-md'
+                              : isEligible
+                              ? 'bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 shadow-md shadow-amber-950/60 active:scale-95'
+                              : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                          }`}
+                        >
+                          {isSelected ? '✓ Terpakai' : 'Gunakan'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
         </div>
 

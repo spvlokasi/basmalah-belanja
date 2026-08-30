@@ -1,16 +1,17 @@
-import React from 'react';
-import { Plus, Check, Image as ImageIcon } from 'lucide-react';
+﻿import React from 'react';
+import { Plus, Check, Image as ImageIcon, Tag } from 'lucide-react';
 import { StoreProduct } from '../../types/storeTypes';
 import { formatRupiah } from '../../utils/formatters';
 
 interface ProductCardProps {
   product: StoreProduct;
   cartCount: number;
+  hasVoucher?: boolean;
   onAddToCart: (p: StoreProduct) => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
-  product, cartCount, onAddToCart
+  product, cartCount, hasVoucher, onAddToCart
 }) => {
   const diskonPct = Math.round(((product.originalPrice - product.promoPrice) / product.originalPrice) * 100);
 
@@ -25,6 +26,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {diskonPct > 0 && (
           <span className="absolute top-2 left-2 px-2 py-0.5 rounded-lg bg-rose-600 text-white font-black text-[10px] shadow">
             Hemat {diskonPct}%
+          </span>
+        )}
+        {hasVoucher && (
+          <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded-md bg-amber-400 text-slate-950 font-black text-[9px] shadow-md flex items-center gap-0.5">
+            <Tag className="w-2.5 h-2.5" />
+            <span>Ada Kupon</span>
           </span>
         )}
       </div>
