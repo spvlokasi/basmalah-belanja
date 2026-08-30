@@ -1,10 +1,13 @@
-export interface StoreBranch {
+﻿export interface StoreBranch {
   id: string;
   code: string;
   name: string;
   address: string;
   phone: string;
   city: string;
+  lat?: number;
+  lng?: number;
+  distanceKm?: number;
 }
 
 export interface StoreProduct {
