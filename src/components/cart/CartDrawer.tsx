@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { ShoppingBag, X, Plus, Minus, Send, Tag, Sparkles, Check, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { ShoppingBag, X, Plus, Minus, Send, Tag, Sparkles, Check, ChevronDown, ChevronUp, MapPin, Navigation, Loader2, ExternalLink } from 'lucide-react';
 import { StoreBranch, CartItem, StoreVoucher } from '../../types/storeTypes';
 import { formatRupiah } from '../../utils/formatters';
 import { supabase } from '../../services/supabaseClient';
@@ -19,9 +19,39 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 }) => {
   const [buyerName, setBuyerName] = useState('');
   const [address, setAddress] = useState('');
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locError, setLocError] = useState<string | null>(null);
   const [showVoucherSelector, setShowVoucherSelector] = useState(true);
 
   const subtotal = items.reduce((sum, i) => sum + i.product.promoPrice * i.quantity, 0);
+
+  // Ambil Titik Koordinat GPS Rumah Pembeli
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setLocError('GPS tidak didukung oleh browser Anda.');
+      return;
+    }
+    setIsLocating(true);
+    setLocError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setCoords({ lat: latitude, lng: longitude });
+        setIsLocating(false);
+      },
+      (err) => {
+        setIsLocating(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          setLocError('Izin akses lokasi ditolak. Silakan aktifkan GPS/Lokasi di HP Anda.');
+        } else {
+          setLocError('Gagal mendeteksi lokasi GPS. Silakan coba lagi.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
+  };
 
   // Evaluasi Kelayakan Voucher secara Cerdas & Kontekstual
   const checkVoucherEligibility = (v: StoreVoucher) => {
@@ -67,9 +97,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const discount = isCurrentVoucherValid && appliedVoucher ? appliedVoucher.discountAmount : 0;
   const grandTotal = Math.max(0, subtotal - discount);
 
+  const mapsUrl = coords ? `https://maps.google.com/?q=${coords.lat},${coords.lng}` : null;
+
   const handleCheckoutWA = async () => {
-    if (!buyerName.trim() || !address.trim()) {
-      alert('Silakan masukkan nama dan alamat pengiriman Anda terlebih dahulu.');
+    if (!buyerName.trim() || (!address.trim() && !coords)) {
+      alert('Silakan masukkan nama dan alamat pengiriman Anda (atau klik tombol Pin Lokasi GPS).');
       return;
     }
 
@@ -92,7 +124,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       branch_code: branch.code,
       branch_name: branch.name,
       buyer_name: buyerName.trim(),
-      address: address.trim(),
+      address: address.trim() || 'Sesuai titik koordinat GPS Maps',
+      maps_url: mapsUrl,
+      lat: coords?.lat,
+      lng: coords?.lng,
       items: items.map((i) => ({ name: i.product.name, qty: i.quantity, price: i.product.promoPrice })),
       subtotal,
       discount,
@@ -118,8 +153,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       `🆔 No. Order: ${orderData.id}\n` +
       `🏪 Gerai: ${branch.name}\n` +
       `👤 Pembeli: ${buyerName.trim()}\n` +
-      `📍 Alamat Antar: ${address.trim()}\n\n` +
-      `*Daftar Belanja:*\n${lines.join('\n')}\n\n` +
+      `📍 Alamat: ${address.trim() || 'Sesuai Pin Maps'}\n`;
+    
+    if (mapsUrl) {
+      msg += `🗺️ Titik Navigasi Maps: ${mapsUrl}\n`;
+    }
+
+    msg += `\n*Daftar Belanja:*\n${lines.join('\n')}\n\n` +
       `Subtotal: ${formatRupiah(subtotal)}\n`;
     if (discount > 0) msg += `🏷️ Kupon Diskon (${appliedVoucher?.code}): -${formatRupiah(discount)}\n`;
     msg += `*TOTAL BAYAR: ${formatRupiah(grandTotal)} (COD/Bayar di Tempat)*\n\n` +
@@ -251,22 +291,72 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           )}
         </div>
 
+        {/* Form Pengiriman & Pin Lokasi GPS Maps */}
         <div className="pt-3 border-t border-slate-800 space-y-2.5 text-xs">
           <input
             type="text"
             value={buyerName}
             onChange={(e) => setBuyerName(e.target.value)}
-            placeholder="Nama Lengkap Anda..."
+            placeholder="Nama Lengkap Anda (contoh: Ibu Siti)..."
             className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
           />
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Alamat Pengiriman Lengkap (Jalan, RT/RW, Patokan)..."
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
-          />
-          <div className="flex justify-between text-slate-400">
+
+          <div className="space-y-1.5">
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Alamat Pengiriman (Jalan, RT/RW, Patokan)..."
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
+            />
+
+            {/* Tombol Pin Lokasi GPS Maps */}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleGetLocation}
+                disabled={isLocating}
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
+                  coords
+                    ? 'bg-emerald-950/80 border border-emerald-500/80 text-emerald-300'
+                    : 'bg-slate-800 hover:bg-slate-750 border border-slate-700 text-emerald-400 active:scale-95'
+                }`}
+              >
+                {isLocating ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Mencari Titik GPS...</span>
+                  </>
+                ) : coords ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>✓ Titik Rumah Terkunci</span>
+                  </>
+                ) : (
+                  <>
+                    <Navigation className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>🎯 Pin Titik Rumah Saya (GPS Maps)</span>
+                  </>
+                )}
+              </button>
+
+              {coords && (
+                <a
+                  href={mapsUrl || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-blue-400 hover:underline flex items-center gap-1"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  <span>Lihat di Google Maps</span>
+                </a>
+              )}
+            </div>
+
+            {locError && <p className="text-[10px] text-rose-400">{locError}</p>}
+          </div>
+
+          <div className="flex justify-between text-slate-400 pt-1">
             <span>Subtotal:</span>
             <strong className="text-slate-200 font-mono">{formatRupiah(subtotal)}</strong>
           </div>
