@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { StoreBranch, StoreProduct, StoreVoucher, CartItem } from './types/storeTypes';
 import { fetchStoreBranches, FALLBACK_BRANCHES, FALLBACK_PRODUCTS, FALLBACK_VOUCHERS } from './services/storeFetchService';
 import { StoreNavbar } from './components/layout/StoreNavbar';
@@ -14,6 +14,7 @@ import { StoreFooter } from './components/layout/StoreFooter';
 export const App: React.FC = () => {
   const [branches, setBranches] = useState<StoreBranch[]>(FALLBACK_BRANCHES);
   const [currentBranch, setCurrentBranch] = useState<StoreBranch>(FALLBACK_BRANCHES[0]);
+  const [isLockedBranch, setIsLockedBranch] = useState(false);
   const [products, setProducts] = useState<StoreProduct[]>(FALLBACK_PRODUCTS);
   const [vouchers, setVouchers] = useState<StoreVoucher[]>(FALLBACK_VOUCHERS);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -23,11 +24,14 @@ export const App: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tokoCode = params.get('toko') || params.get('cabang');
+    if (tokoCode) {
+      setIsLockedBranch(true);
+    }
+
     fetchStoreBranches().then((list) => {
       setBranches(list);
-      // Auto pick branch from URL param e.g. ?toko=M3017 or default to first
-      const params = new URLSearchParams(window.location.search);
-      const tokoCode = params.get('toko') || params.get('cabang');
       if (tokoCode) {
         const found = list.find((b) => b.code.toLowerCase() === tokoCode.toLowerCase());
         if (found) setCurrentBranch(found);
@@ -53,7 +57,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      <StoreNavbar currentBranch={currentBranch} onOpenBranchPicker={() => setIsBranchModalOpen(true)} />
+      <StoreNavbar currentBranch={currentBranch} isLockedBranch={isLockedBranch} onOpenBranchPicker={() => setIsBranchModalOpen(true)} />
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-5">
         <PromoHeroBanner branch={currentBranch} />
         <VoucherClaimCard vouchers={vouchers} appliedCode={appliedVoucher?.code || null} onApplyVoucher={(v) => setAppliedVoucher(v)} />
@@ -68,7 +72,7 @@ export const App: React.FC = () => {
       </main>
 
       <FloatingCartBar totalItems={totalItems} subtotal={subtotal} onOpenCart={() => setIsCartOpen(true)} />
-      {isBranchModalOpen && <BranchSelectorModal branches={branches} currentBranchId={currentBranch.id} onSelectBranch={setCurrentBranch} onClose={() => setIsBranchModalOpen(false)} />}
+      {!isLockedBranch && isBranchModalOpen && <BranchSelectorModal branches={branches} currentBranchId={currentBranch.id} onSelectBranch={setCurrentBranch} onClose={() => setIsBranchModalOpen(false)} />}
       {isCartOpen && <CartDrawer branch={currentBranch} items={cart} appliedVoucher={appliedVoucher} onUpdateQty={handleUpdateQty} onClose={() => setIsCartOpen(false)} />}
     </div>
   );

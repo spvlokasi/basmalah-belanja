@@ -1,13 +1,14 @@
-import React from 'react';
-import { MapPin, ChevronDown, ShieldCheck, Phone } from 'lucide-react';
+﻿import React from 'react';
+import { MapPin, ChevronDown, ShieldCheck } from 'lucide-react';
 import { StoreBranch } from '../../types/storeTypes';
 
 interface StoreNavbarProps {
   currentBranch: StoreBranch;
+  isLockedBranch?: boolean;
   onOpenBranchPicker: () => void;
 }
 
-export const StoreNavbar: React.FC<StoreNavbarProps> = ({ currentBranch, onOpenBranchPicker }) => {
+export const StoreNavbar: React.FC<StoreNavbarProps> = ({ currentBranch, isLockedBranch = false, onOpenBranchPicker }) => {
   return (
     <header className="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 py-3 shadow-md">
       <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
@@ -22,19 +23,32 @@ export const StoreNavbar: React.FC<StoreNavbarProps> = ({ currentBranch, onOpenB
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onOpenBranchPicker}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold border border-slate-700 transition-all text-left"
-          title="Klik untuk ganti cabang toko terdekat"
-        >
-          <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-          <div className="min-w-0 max-w-[120px] sm:max-w-[180px]">
-            <span className="text-[9px] text-slate-400 block leading-none">Cabang:</span>
-            <span className="text-xs font-bold text-white truncate block">{currentBranch.name.replace(/^TokoBASMALAH\s+/i, '')}</span>
+        {isLockedBranch ? (
+          <div
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/80 text-slate-200 text-xs font-semibold text-left shadow-sm"
+            title={`Gerai Resmi ${currentBranch.name}`}
+          >
+            <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+            <div className="min-w-0 max-w-[130px] sm:max-w-[200px]">
+              <span className="text-[9px] text-emerald-400 font-bold block leading-none uppercase">Gerai:</span>
+              <span className="text-xs font-bold text-white truncate block">{currentBranch.name.replace(/^TokoBASMALAH\s+/i, '')}</span>
+            </div>
           </div>
-          <ChevronDown className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-        </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onOpenBranchPicker}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold border border-slate-700 transition-all text-left"
+            title="Klik untuk ganti cabang toko terdekat"
+          >
+            <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+            <div className="min-w-0 max-w-[120px] sm:max-w-[180px]">
+              <span className="text-[9px] text-slate-400 block leading-none">Pilih Cabang:</span>
+              <span className="text-xs font-bold text-white truncate block">{currentBranch.name.replace(/^TokoBASMALAH\s+/i, '')}</span>
+            </div>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+          </button>
+        )}
       </div>
     </header>
   );
