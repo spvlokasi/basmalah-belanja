@@ -37,7 +37,7 @@ export const App: React.FC = () => {
 
         <div className="space-y-3 pt-1">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black text-white tracking-tight">Katalog Sembako & Promo Hemat:</h3>
+            <h3 className="text-sm font-black text-white tracking-tight">Katalog Promo:</h3>
             <span className="text-[11px] text-emerald-400 font-semibold">{filteredProducts.length} Produk</span>
           </div>
           <CategoryFilterTabs selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
