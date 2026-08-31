@@ -4,7 +4,6 @@ import { BranchSelectorModal } from './components/layout/BranchSelectorModal';
 import { PromoHeroBanner } from './components/promo/PromoHeroBanner';
 import { InstallAppBanner } from './components/layout/InstallAppBanner';
 import { SearchBar } from './components/catalog/SearchBar';
-import { CategoryFilterTabs } from './components/catalog/CategoryFilterTabs';
 import { CatalogProductGrid } from './components/catalog/CatalogProductGrid';
 import { CartDrawer } from './components/cart/CartDrawer';
 import { FloatingCartBar } from './components/cart/FloatingCartBar';
@@ -16,15 +15,12 @@ export const App: React.FC = () => {
   const { branches, currentBranch, isLockedBranch, isLoading, products, vouchers, setCurrentBranch } = useStoreData();
   const { cart, appliedVoucher, isCartOpen, cartCounts, totalItems, subtotal, setAppliedVoucher, setIsCartOpen, handleAddToCart, handleUpdateQty } = useStoreCart();
 
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
 
   const filteredProducts = products.filter((p) => {
-    const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
     const q = searchQuery.toLowerCase().trim();
-    const matchesSearch = !q || p.name.toLowerCase().includes(q) || p.unit.toLowerCase().includes(q);
-    return matchesCategory && matchesSearch;
+    return !q || p.name.toLowerCase().includes(q) || p.unit.toLowerCase().includes(q);
   });
 
   return (
@@ -40,14 +36,13 @@ export const App: React.FC = () => {
             <h3 className="text-sm font-black text-white tracking-tight">Katalog Promo:</h3>
             <span className="text-[11px] text-emerald-400 font-semibold">{filteredProducts.length} Produk</span>
           </div>
-          <CategoryFilterTabs selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
           <CatalogProductGrid
             products={filteredProducts}
             vouchers={vouchers}
             cartCounts={cartCounts}
             searchQuery={searchQuery}
             isLoading={isLoading}
-            onResetSearch={() => { setSearchQuery(''); setSelectedCategory('all'); }}
+            onResetSearch={() => setSearchQuery('')}
             onAddToCart={handleAddToCart}
           />
         </div>
