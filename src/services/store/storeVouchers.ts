@@ -1,11 +1,7 @@
 import { supabase } from '../supabaseClient';
 import { StoreVoucher } from '../../types/storeTypes';
 
-export const FALLBACK_VOUCHERS: StoreVoucher[] = [
-  { id: 'v-yakult', branchId: 'all', code: 'YAKUL2K', discountAmount: 2000, minSpend: 25000, quota: 100, claimedCount: 14, usedCount: 8, validUntil: '2026-12-31', isActive: true, description: 'Potongan Rp 2.000 produk sehat keluarga', sponsorName: 'Yakult' },
-  { id: 'v-kanzler', branchId: 'all', code: 'KANZL3K', discountAmount: 3500, minSpend: 35000, quota: 150, claimedCount: 22, usedCount: 15, validUntil: '2026-12-31', isActive: true, description: 'Diskon Rp 3.500 festival frozen food', sponsorName: 'Kanzler' },
-  { id: 'v-toko', branchId: 'all', code: 'BERKAH5K', discountAmount: 5000, minSpend: 50000, quota: 50, claimedCount: 8, usedCount: 4, validUntil: '2026-12-31', isActive: true, description: 'Potongan Rp 5.000 belanja sembako' }
-];
+export const FALLBACK_VOUCHERS: StoreVoucher[] = [];
 
 export const fetchStoreVouchers = async (branchId?: string): Promise<StoreVoucher[]> => {
   try {
@@ -14,7 +10,7 @@ export const fetchStoreVouchers = async (branchId?: string): Promise<StoreVouche
       query = query.or(`branch_id.eq.${branchId},branch_id.eq.all`);
     }
     const { data, error } = await query;
-    if (error || !data) return FALLBACK_VOUCHERS;
+    if (error || !data) return [];
 
     return data.map((v) => ({
       id: v.id,

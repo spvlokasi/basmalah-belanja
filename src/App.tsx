@@ -13,7 +13,7 @@ import { useStoreData } from './hooks/useStoreData';
 import { useStoreCart } from './hooks/useStoreCart';
 
 export const App: React.FC = () => {
-  const { branches, currentBranch, isLockedBranch, products, vouchers, setCurrentBranch } = useStoreData();
+  const { branches, currentBranch, isLockedBranch, isLoading, products, vouchers, setCurrentBranch } = useStoreData();
   const { cart, appliedVoucher, isCartOpen, cartCounts, totalItems, subtotal, setAppliedVoucher, setIsCartOpen, handleAddToCart, handleUpdateQty } = useStoreCart();
 
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -46,6 +46,7 @@ export const App: React.FC = () => {
             vouchers={vouchers}
             cartCounts={cartCounts}
             searchQuery={searchQuery}
+            isLoading={isLoading}
             onResetSearch={() => { setSearchQuery(''); setSelectedCategory('all'); }}
             onAddToCart={handleAddToCart}
           />

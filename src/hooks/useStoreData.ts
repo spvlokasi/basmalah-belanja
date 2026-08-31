@@ -32,8 +32,9 @@ export const useStoreData = () => {
     const params = new URLSearchParams(window.location.search);
     return Boolean(params.get('toko') || params.get('cabang'));
   });
-  const [products, setProducts] = useState<StoreProduct[]>(FALLBACK_PRODUCTS);
-  const [vouchers, setVouchers] = useState<StoreVoucher[]>(FALLBACK_VOUCHERS);
+  const [isLoading, setIsLoading] = useState(true);
+  const [products, setProducts] = useState<StoreProduct[]>([]);
+  const [vouchers, setVouchers] = useState<StoreVoucher[]>([]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -63,8 +64,17 @@ export const useStoreData = () => {
 
   useEffect(() => {
     if (currentBranch) {
-      fetchStoreProducts(currentBranch.id).then(setProducts);
-      fetchStoreVouchers(currentBranch.id).then(setVouchers);
+      setIsLoading(true);
+      Promise.all([
+        fetchStoreProducts(currentBranch.id),
+        fetchStoreVouchers(currentBranch.id)
+      ]).then(([prods, pouchs]) => {
+        setProducts(prods);
+        setVouchers(pouchs);
+        setIsLoading(false);
+      }).catch(() => {
+        setIsLoading(false);
+      });
 
       const channel = supabase
         .channel(`public_catalog_sync_${currentBranch.id}`)
@@ -82,5 +92,5 @@ export const useStoreData = () => {
     }
   }, [currentBranch]);
 
-  return { branches, currentBranch, isLockedBranch, products, vouchers, setCurrentBranch };
+  return { branches, currentBranch, isLockedBranch, isLoading, products, vouchers, setCurrentBranch };
 };
