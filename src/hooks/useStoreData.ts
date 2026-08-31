@@ -3,6 +3,11 @@ import { StoreBranch, StoreProduct, StoreVoucher } from '../types/storeTypes';
 import { fetchStoreBranches, fetchStoreProducts, fetchStoreVouchers, FALLBACK_BRANCHES, FALLBACK_PRODUCTS, FALLBACK_VOUCHERS } from '../services/storeFetchService';
 import { supabase } from '../services/supabaseClient';
 
+const formatOfficialStoreParam = (name: string) => {
+  const clean = name.replace(/\s+/g, '').replace(/tokobasmalah/i, '');
+  return `TokoBasmalah${clean.charAt(0).toUpperCase() + clean.slice(1)}`;
+};
+
 export const useStoreData = () => {
   const [branches, setBranches] = useState<StoreBranch[]>(FALLBACK_BRANCHES);
   const [currentBranch, setCurrentBranch] = useState<StoreBranch>(FALLBACK_BRANCHES[0]);
@@ -24,7 +29,14 @@ export const useStoreData = () => {
           const cleanName = b.name.toLowerCase().replace(/[^a-z0-9]/g, '');
           return cleanCode === cleanQuery || cleanName.includes(cleanQuery) || cleanQuery.includes(cleanName) || cleanName.includes(cleanQuery.replace('tokobasmalah', ''));
         });
-        if (found) setCurrentBranch(found);
+        if (found) {
+          setCurrentBranch(found);
+          const officialParam = formatOfficialStoreParam(found.name);
+          if (tokoCode !== officialParam) {
+            const newUrl = `${window.location.pathname}?toko=${officialParam}`;
+            window.history.replaceState(null, '', newUrl);
+          }
+        }
       }
     });
   }, []);
