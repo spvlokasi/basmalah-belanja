@@ -18,7 +18,12 @@ export const useStoreData = () => {
     fetchStoreBranches().then((list) => {
       setBranches(list);
       if (tokoCode) {
-        const found = list.find((b) => b.code.toLowerCase() === tokoCode.toLowerCase());
+        const cleanQuery = tokoCode.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const found = list.find((b) => {
+          const cleanCode = b.code.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const cleanName = b.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+          return cleanCode === cleanQuery || cleanName.includes(cleanQuery) || cleanQuery.includes(cleanName) || cleanName.includes(cleanQuery.replace('tokobasmalah', ''));
+        });
         if (found) setCurrentBranch(found);
       }
     });
