@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StoreNavbar } from './components/layout/StoreNavbar';
 import { BranchSelectorModal } from './components/layout/BranchSelectorModal';
 import { PromoHeroBanner } from './components/promo/PromoHeroBanner';
+import { InstallAppBanner } from './components/layout/InstallAppBanner';
 import { VoucherClaimCard } from './components/promo/VoucherClaimCard';
 import { SearchBar } from './components/catalog/SearchBar';
 import { CategoryFilterTabs } from './components/catalog/CategoryFilterTabs';
@@ -31,6 +32,7 @@ export const App: React.FC = () => {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       <StoreNavbar currentBranch={currentBranch} isLockedBranch={isLockedBranch} onOpenBranchPicker={() => setIsBranchModalOpen(true)} />
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-4">
+        <InstallAppBanner />
         <PromoHeroBanner branch={currentBranch} />
         <VoucherClaimCard vouchers={vouchers} appliedCode={appliedVoucher?.code || null} onApplyVoucher={setAppliedVoucher} />
         <SearchBar value={searchQuery} onChange={setSearchQuery} onClear={() => setSearchQuery('')} totalResults={filteredProducts.length} />
