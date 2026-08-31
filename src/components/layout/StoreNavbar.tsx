@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { MapPin, ChevronDown, ShieldCheck } from 'lucide-react';
 import { StoreBranch } from '../../types/storeTypes';
 
@@ -19,7 +19,7 @@ export const StoreNavbar: React.FC<StoreNavbarProps> = ({ currentBranch, isLocke
               <span className="text-sm sm:text-base font-extrabold text-white tracking-tight">TokoBASMALAH</span>
               <span className="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 text-[10px] font-bold border border-emerald-800 flex items-center gap-0.5"><ShieldCheck className="w-3 h-3" />Resmi</span>
             </div>
-            <span className="text-[10px] text-emerald-400 font-semibold block tracking-wider uppercase">Katalog Belanja Sembako Hemat</span>
+            <span className="text-[10px] text-emerald-400 font-semibold block tracking-wider uppercase">Tempat Belanja yang Baik</span>
           </div>
         </div>
 
