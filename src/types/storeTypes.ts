@@ -5,6 +5,7 @@ export interface StoreBranch {
   address: string;
   phone: string;
   city: string;
+  deliveryHours?: string;
   lat?: number;
   lng?: number;
   distanceKm?: number;
