@@ -5,6 +5,7 @@ import { supabase } from './services/supabaseClient';
 import { StoreNavbar } from './components/layout/StoreNavbar';
 import { BranchSelectorModal } from './components/layout/BranchSelectorModal';
 import { PromoHeroBanner } from './components/promo/PromoHeroBanner';
+import { VoucherClaimCard } from './components/promo/VoucherClaimCard';
 import { SearchBar } from './components/catalog/SearchBar';
 import { CategoryFilterTabs } from './components/catalog/CategoryFilterTabs';
 import { ProductCard } from './components/catalog/ProductCard';
@@ -79,18 +80,22 @@ export const App: React.FC = () => {
     const nameLower = product.name.toLowerCase();
     return vouchers.some((v) => {
       if (v.isActive === false) return false;
-      // Jika voucher dikhususkan ke ID produk tertentu
+      // 1. Jika voucher dikhususkan ke ID produk tertentu
       if (v.applicableProductIds && v.applicableProductIds.length > 0) {
         return v.applicableProductIds.includes(product.id);
       }
-      // Jika voucher sponsor brand (misal: Yakult atau Kanzler), HANYA produk bersangkutan yang bertanda kupon
+      // 2. Jika voucher sponsor brand (misal: Yakult atau Kanzler), HANYA produk bersangkutan yang bertanda kupon
       if (v.sponsorName) {
         const sLower = v.sponsorName.toLowerCase();
         return nameLower.includes(sLower);
       }
-      // Jika voucher khusus kategori tertentu (bukan all)
+      // 3. Jika voucher khusus kategori tertentu (bukan all)
       if (v.applicableCategory && v.applicableCategory !== 'all') {
         return product.category === v.applicableCategory;
+      }
+      // 4. Jika voucher umum semua toko / belanja umum
+      if (!v.applicableProductIds?.length && !v.sponsorName && (!v.applicableCategory || v.applicableCategory === 'all')) {
+        return true;
       }
       return false;
     });
@@ -114,6 +119,15 @@ export const App: React.FC = () => {
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-4">
         {/* Banner Status & Badge Layanan */}
         <PromoHeroBanner branch={currentBranch} />
+
+        {/* Banner Klaim Voucher Diskon Aktif */}
+        <VoucherClaimCard
+          vouchers={vouchers}
+          appliedCode={appliedVoucher?.code || null}
+          onApplyVoucher={(v) => {
+            setAppliedVoucher(v);
+          }}
+        />
         
         {/* Kolom Pencarian Cepat Produk */}
         <SearchBar
