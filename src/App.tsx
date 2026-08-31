@@ -1,107 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { StoreBranch, StoreProduct, StoreVoucher, CartItem } from './types/storeTypes';
-import { fetchStoreBranches, fetchStoreProducts, fetchStoreVouchers, FALLBACK_BRANCHES, FALLBACK_PRODUCTS, FALLBACK_VOUCHERS } from './services/storeFetchService';
-import { supabase } from './services/supabaseClient';
+import React, { useState } from 'react';
 import { StoreNavbar } from './components/layout/StoreNavbar';
 import { BranchSelectorModal } from './components/layout/BranchSelectorModal';
 import { PromoHeroBanner } from './components/promo/PromoHeroBanner';
 import { VoucherClaimCard } from './components/promo/VoucherClaimCard';
 import { SearchBar } from './components/catalog/SearchBar';
 import { CategoryFilterTabs } from './components/catalog/CategoryFilterTabs';
-import { ProductCard } from './components/catalog/ProductCard';
+import { CatalogProductGrid } from './components/catalog/CatalogProductGrid';
 import { CartDrawer } from './components/cart/CartDrawer';
 import { FloatingCartBar } from './components/cart/FloatingCartBar';
 import { StoreFooter } from './components/layout/StoreFooter';
+import { useStoreData } from './hooks/useStoreData';
+import { useStoreCart } from './hooks/useStoreCart';
 
 export const App: React.FC = () => {
-  const [branches, setBranches] = useState<StoreBranch[]>(FALLBACK_BRANCHES);
-  const [currentBranch, setCurrentBranch] = useState<StoreBranch>(FALLBACK_BRANCHES[0]);
-  const [isLockedBranch, setIsLockedBranch] = useState(false);
-  const [products, setProducts] = useState<StoreProduct[]>(FALLBACK_PRODUCTS);
-  const [vouchers, setVouchers] = useState<StoreVoucher[]>(FALLBACK_VOUCHERS);
+  const { branches, currentBranch, isLockedBranch, products, vouchers, setCurrentBranch } = useStoreData();
+  const { cart, appliedVoucher, isCartOpen, cartCounts, totalItems, subtotal, setAppliedVoucher, setIsCartOpen, handleAddToCart, handleUpdateQty } = useStoreCart();
+
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [appliedVoucher, setAppliedVoucher] = useState<StoreVoucher | null>(null);
   const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
-  const [isCartOpen, setIsCartOpen] = useState(false);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tokoCode = params.get('toko') || params.get('cabang');
-    if (tokoCode) {
-      setIsLockedBranch(true);
-    }
-
-    fetchStoreBranches().then((list) => {
-      setBranches(list);
-      if (tokoCode) {
-        const found = list.find((b) => b.code.toLowerCase() === tokoCode.toLowerCase());
-        if (found) setCurrentBranch(found);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    if (currentBranch) {
-      fetchStoreProducts(currentBranch.id).then((pList) => setProducts(pList));
-      fetchStoreVouchers(currentBranch.id).then((vList) => setVouchers(vList));
-
-      // Realtime subscription agar perubahan promo di SPV langsung sinkron otomatis ke pembeli
-      const channel = supabase
-        .channel(`public_catalog_sync_${currentBranch.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'promo_products' }, () => {
-          fetchStoreProducts(currentBranch.id).then((pList) => setProducts(pList));
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'promo_vouchers' }, () => {
-          fetchStoreVouchers(currentBranch.id).then((vList) => setVouchers(vList));
-        })
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [currentBranch]);
-
-  const handleAddToCart = (product: StoreProduct) => {
-    const existing = cart.find((i) => i.product.id === product.id);
-    if (existing) setCart(cart.map((i) => (i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i)));
-    else setCart([...cart, { product, quantity: 1 }]);
-  };
-
-  const handleUpdateQty = (prodId: string, qty: number) => {
-    if (qty <= 0) setCart(cart.filter((i) => i.product.id !== prodId));
-    else setCart(cart.map((i) => (i.product.id === prodId ? { ...i, quantity: qty } : i)));
-  };
-
-  // Cek apakah HANYA produk tertentu yang memiliki kupon spesifik
-  const isProductHasVoucher = (product: StoreProduct) => {
-    const nameLower = product.name.toLowerCase();
-    return vouchers.some((v) => {
-      if (v.isActive === false) return false;
-      // 1. Jika voucher dikhususkan ke ID produk tertentu
-      if (v.applicableProductIds && v.applicableProductIds.length > 0) {
-        return v.applicableProductIds.includes(product.id);
-      }
-      // 2. Jika voucher sponsor brand (misal: Yakult atau Kanzler), HANYA produk bersangkutan yang bertanda kupon
-      if (v.sponsorName) {
-        const sLower = v.sponsorName.toLowerCase();
-        return nameLower.includes(sLower);
-      }
-      // 3. Jika voucher khusus kategori tertentu (bukan all)
-      if (v.applicableCategory && v.applicableCategory !== 'all') {
-        return product.category === v.applicableCategory;
-      }
-      // 4. Jika voucher umum semua toko / belanja umum
-      if (!v.applicableProductIds?.length && !v.sponsorName && (!v.applicableCategory || v.applicableCategory === 'all')) {
-        return true;
-      }
-      return false;
-    });
-  };
-
-  // Filter gabungan Kategori & Pencarian Kata Kunci
   const filteredProducts = products.filter((p) => {
     const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
     const q = searchQuery.toLowerCase().trim();
@@ -109,33 +27,13 @@ export const App: React.FC = () => {
     return matchesCategory && matchesSearch;
   });
 
-  const cartCounts = cart.reduce((acc, i) => ({ ...acc, [i.product.id]: i.quantity }), {} as Record<string, number>);
-  const totalItems = cart.reduce((sum, i) => sum + i.quantity, 0);
-  const subtotal = cart.reduce((sum, i) => sum + i.product.promoPrice * i.quantity, 0);
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       <StoreNavbar currentBranch={currentBranch} isLockedBranch={isLockedBranch} onOpenBranchPicker={() => setIsBranchModalOpen(true)} />
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-4">
-        {/* Banner Status & Badge Layanan */}
         <PromoHeroBanner branch={currentBranch} />
-
-        {/* Banner Klaim Voucher Diskon Aktif */}
-        <VoucherClaimCard
-          vouchers={vouchers}
-          appliedCode={appliedVoucher?.code || null}
-          onApplyVoucher={(v) => {
-            setAppliedVoucher(v);
-          }}
-        />
-        
-        {/* Kolom Pencarian Cepat Produk */}
-        <SearchBar
-          value={searchQuery}
-          onChange={setSearchQuery}
-          onClear={() => setSearchQuery('')}
-          totalResults={filteredProducts.length}
-        />
+        <VoucherClaimCard vouchers={vouchers} appliedCode={appliedVoucher?.code || null} onApplyVoucher={setAppliedVoucher} />
+        <SearchBar value={searchQuery} onChange={setSearchQuery} onClear={() => setSearchQuery('')} totalResults={filteredProducts.length} />
 
         <div className="space-y-3 pt-1">
           <div className="flex items-center justify-between">
@@ -143,30 +41,14 @@ export const App: React.FC = () => {
             <span className="text-[11px] text-emerald-400 font-semibold">{filteredProducts.length} Produk</span>
           </div>
           <CategoryFilterTabs selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
-          {filteredProducts.length === 0 ? (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-2">
-              <p className="text-xs text-slate-400">Tidak ada produk yang cocok dengan pencarian <strong>"{searchQuery}"</strong></p>
-              <button
-                type="button"
-                onClick={() => { setSearchQuery(''); setSelectedCategory('all'); }}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-bold border border-slate-700"
-              >
-                Reset Filter Pencarian
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {filteredProducts.map((p) => (
-                <ProductCard
-                  key={p.id}
-                  product={p}
-                  cartCount={cartCounts[p.id] || 0}
-                  hasVoucher={isProductHasVoucher(p)}
-                  onAddToCart={handleAddToCart}
-                />
-              ))}
-            </div>
-          )}
+          <CatalogProductGrid
+            products={filteredProducts}
+            vouchers={vouchers}
+            cartCounts={cartCounts}
+            searchQuery={searchQuery}
+            onResetSearch={() => { setSearchQuery(''); setSelectedCategory('all'); }}
+            onAddToCart={handleAddToCart}
+          />
         </div>
         <StoreFooter branch={currentBranch} />
       </main>
