@@ -12,26 +12,25 @@ export const FALLBACK_PRODUCTS: StoreProduct[] = [
 
 export const fetchStoreProducts = async (branchId?: string): Promise<StoreProduct[]> => {
   try {
-    const { data, error } = await supabase.from('promo_products').select('*');
+    let query = supabase.from('promo_products').select('id, branch_id, name, category, original_price, promo_price, unit, image_url, in_stock, is_featured');
+    if (branchId && branchId !== 'all') {
+      query = query.or(`branch_id.eq.${branchId},branch_id.eq.all`);
+    }
+    const { data, error } = await query;
     if (error || !data) return FALLBACK_PRODUCTS;
     
-    const mapped: StoreProduct[] = data.map((p) => ({
+    return data.map((p) => ({
       id: p.id,
-      branchId: p.branch_id || p.branchId || 'all',
+      branchId: p.branch_id || 'all',
       name: p.name,
       category: p.category || 'sembako',
-      originalPrice: Number(p.original_price || p.originalPrice || 0),
-      promoPrice: Number(p.promo_price || p.promoPrice || 0),
+      originalPrice: Number(p.original_price || 0),
+      promoPrice: Number(p.promo_price || 0),
       unit: p.unit || 'Pcs',
-      imageUrl: p.image_url || p.imageUrl || '',
-      inStock: p.in_stock ?? p.inStock ?? true,
-      isFeatured: p.is_featured ?? p.isFeatured ?? true
+      imageUrl: p.image_url || '',
+      inStock: p.in_stock ?? true,
+      isFeatured: p.is_featured ?? true
     }));
-
-    if (mapped.length === 0) return [];
-    if (!branchId || branchId === 'all') return mapped;
-    const branchOnly = mapped.filter((p) => p.branchId === branchId || p.branchId === 'all');
-    return branchOnly.length > 0 ? branchOnly : mapped;
   } catch (e) {
     console.error('Error di fetchStoreProducts:', e);
     return FALLBACK_PRODUCTS;

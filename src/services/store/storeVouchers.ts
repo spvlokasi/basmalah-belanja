@@ -9,31 +9,30 @@ export const FALLBACK_VOUCHERS: StoreVoucher[] = [
 
 export const fetchStoreVouchers = async (branchId?: string): Promise<StoreVoucher[]> => {
   try {
-    const { data, error } = await supabase.from('promo_vouchers').select('*');
+    let query = supabase.from('promo_vouchers').select('id, branch_id, code, discount_amount, min_spend, quota, claimed_count, used_count, valid_until, is_active, description, funding_source, sponsor_name, applicable_category, applicable_product_ids');
+    if (branchId && branchId !== 'all') {
+      query = query.or(`branch_id.eq.${branchId},branch_id.eq.all`);
+    }
+    const { data, error } = await query;
     if (error || !data) return FALLBACK_VOUCHERS;
 
-    const mapped: StoreVoucher[] = data.map((v) => ({
+    return data.map((v) => ({
       id: v.id,
-      branchId: v.branch_id || v.branchId || 'all',
+      branchId: v.branch_id || 'all',
       code: v.code,
-      discountAmount: Number(v.discount_amount || v.discountAmount || 0),
-      minSpend: Number(v.min_spend || v.minSpend || 0),
+      discountAmount: Number(v.discount_amount || 0),
+      minSpend: Number(v.min_spend || 0),
       quota: Number(v.quota || 50),
-      claimedCount: Number(v.claimed_count || v.claimedCount || 0),
-      usedCount: Number(v.used_count || v.usedCount || 0),
-      validUntil: v.valid_until || v.validUntil || '2026-12-31',
-      isActive: v.is_active ?? v.isActive ?? true,
+      claimedCount: Number(v.claimed_count || 0),
+      usedCount: Number(v.used_count || 0),
+      validUntil: v.valid_until || '2026-12-31',
+      isActive: v.is_active ?? true,
       description: v.description || '',
-      fundingSource: v.funding_source || v.fundingSource || 'store',
-      sponsorName: v.sponsor_name || v.sponsorName || '',
-      applicableCategory: v.applicable_category || v.applicableCategory || 'all',
-      applicableProductIds: v.applicable_product_ids || v.applicableProductIds || []
+      fundingSource: v.funding_source || 'store',
+      sponsorName: v.sponsor_name || '',
+      applicableCategory: v.applicable_category || 'all',
+      applicableProductIds: v.applicable_product_ids || []
     }));
-
-    if (mapped.length === 0) return [];
-    if (!branchId || branchId === 'all') return mapped;
-    const branchOnly = mapped.filter((v) => v.branchId === branchId || v.branchId === 'all');
-    return branchOnly.length > 0 ? branchOnly : mapped;
   } catch (e) {
     console.error('Error di fetchStoreVouchers:', e);
     return FALLBACK_VOUCHERS;
