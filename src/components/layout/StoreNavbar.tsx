@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, ChevronDown, ShieldCheck } from 'lucide-react';
+import { MapPin, ChevronDown } from 'lucide-react';
 import { StoreBranch } from '../../types/storeTypes';
 
 interface StoreNavbarProps {
@@ -15,10 +15,7 @@ export const StoreNavbar: React.FC<StoreNavbarProps> = ({ currentBranch, isLocke
         <div className="flex items-center gap-3">
           <img src="/logo.png" alt="TokoBasmalah" className="h-10 w-auto bg-white p-1 rounded-xl shadow object-contain" />
           <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm sm:text-base font-extrabold text-white tracking-tight">TokoBASMALAH</span>
-              <span className="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 text-[10px] font-bold border border-emerald-800 flex items-center gap-0.5"><ShieldCheck className="w-3 h-3" />Resmi</span>
-            </div>
+            <span className="text-sm sm:text-base font-extrabold text-white tracking-tight block leading-tight">TokoBASMALAH</span>
             <span className="text-[11px] text-emerald-400 font-medium block">tempat belanja yang baik</span>
           </div>
         </div>
