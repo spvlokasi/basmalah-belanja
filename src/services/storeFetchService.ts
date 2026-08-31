@@ -1,4 +1,4 @@
-﻿import { supabase } from './supabaseClient';
+import { supabase } from './supabaseClient';
 import { StoreBranch, StoreProduct, StoreVoucher } from '../types/storeTypes';
 
 export const FALLBACK_BRANCHES: StoreBranch[] = [
@@ -49,7 +49,12 @@ export const fetchStoreBranches = async (): Promise<StoreBranch[]> => {
 export const fetchStoreProducts = async (branchId?: string): Promise<StoreProduct[]> => {
   try {
     const { data, error } = await supabase.from('promo_products').select('*');
-    if (error || !data || data.length === 0) return FALLBACK_PRODUCTS;
+    if (error) {
+      console.warn('Gagal fetch promo_products dari Supabase:', error.message);
+      return FALLBACK_PRODUCTS;
+    }
+    if (!data) return FALLBACK_PRODUCTS;
+    
     const mapped: StoreProduct[] = data.map((p) => ({
       id: p.id,
       branchId: p.branch_id || p.branchId || 'all',
@@ -58,14 +63,18 @@ export const fetchStoreProducts = async (branchId?: string): Promise<StoreProduc
       originalPrice: Number(p.original_price || p.originalPrice || 0),
       promoPrice: Number(p.promo_price || p.promoPrice || 0),
       unit: p.unit || 'Pcs',
-      imageUrl: p.image_url || p.imageUrl,
+      imageUrl: p.image_url || p.imageUrl || '',
       inStock: p.in_stock ?? p.inStock ?? true,
       isFeatured: p.is_featured ?? p.isFeatured ?? true
     }));
+
+    if (mapped.length === 0) return [];
+
     if (!branchId || branchId === 'all') return mapped;
     const branchOnly = mapped.filter((p) => p.branchId === branchId || p.branchId === 'all');
     return branchOnly.length > 0 ? branchOnly : mapped;
-  } catch {
+  } catch (e) {
+    console.error('Error di fetchStoreProducts:', e);
     return FALLBACK_PRODUCTS;
   }
 };
@@ -73,7 +82,12 @@ export const fetchStoreProducts = async (branchId?: string): Promise<StoreProduc
 export const fetchStoreVouchers = async (branchId?: string): Promise<StoreVoucher[]> => {
   try {
     const { data, error } = await supabase.from('promo_vouchers').select('*');
-    if (error || !data || data.length === 0) return FALLBACK_VOUCHERS;
+    if (error) {
+      console.warn('Gagal fetch promo_vouchers dari Supabase:', error.message);
+      return FALLBACK_VOUCHERS;
+    }
+    if (!data) return FALLBACK_VOUCHERS;
+
     const mapped: StoreVoucher[] = data.map((v) => ({
       id: v.id,
       branchId: v.branch_id || v.branchId || 'all',
@@ -86,13 +100,19 @@ export const fetchStoreVouchers = async (branchId?: string): Promise<StoreVouche
       validUntil: v.valid_until || v.validUntil || '2026-12-31',
       isActive: v.is_active ?? v.isActive ?? true,
       description: v.description || '',
-      fundingSource: v.funding_source || v.fundingSource,
-      sponsorName: v.sponsor_name || v.sponsorName
+      fundingSource: v.funding_source || v.fundingSource || 'store',
+      sponsorName: v.sponsor_name || v.sponsorName || '',
+      applicableCategory: v.applicable_category || v.applicableCategory || 'all',
+      applicableProductIds: v.applicable_product_ids || v.applicableProductIds || []
     }));
+
+    if (mapped.length === 0) return [];
+
     if (!branchId || branchId === 'all') return mapped;
     const branchOnly = mapped.filter((v) => v.branchId === branchId || v.branchId === 'all');
     return branchOnly.length > 0 ? branchOnly : mapped;
-  } catch {
+  } catch (e) {
+    console.error('Error di fetchStoreVouchers:', e);
     return FALLBACK_VOUCHERS;
   }
 };

@@ -1,4 +1,4 @@
-﻿export interface StoreBranch {
+export interface StoreBranch {
   id: string;
   code: string;
   name: string;
@@ -38,6 +38,7 @@ export interface StoreVoucher {
   fundingSource?: 'store' | 'supplier' | 'joint';
   sponsorName?: string;
   applicableCategory?: string;
+  applicableProductIds?: string[];
 }
 
 export interface CartItem {

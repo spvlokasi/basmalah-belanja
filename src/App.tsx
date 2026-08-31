@@ -1,6 +1,7 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StoreBranch, StoreProduct, StoreVoucher, CartItem } from './types/storeTypes';
 import { fetchStoreBranches, fetchStoreProducts, fetchStoreVouchers, FALLBACK_BRANCHES, FALLBACK_PRODUCTS, FALLBACK_VOUCHERS } from './services/storeFetchService';
+import { supabase } from './services/supabaseClient';
 import { StoreNavbar } from './components/layout/StoreNavbar';
 import { BranchSelectorModal } from './components/layout/BranchSelectorModal';
 import { PromoHeroBanner } from './components/promo/PromoHeroBanner';
@@ -44,6 +45,21 @@ export const App: React.FC = () => {
     if (currentBranch) {
       fetchStoreProducts(currentBranch.id).then((pList) => setProducts(pList));
       fetchStoreVouchers(currentBranch.id).then((vList) => setVouchers(vList));
+
+      // Realtime subscription agar perubahan promo di SPV langsung sinkron otomatis ke pembeli
+      const channel = supabase
+        .channel(`public_catalog_sync_${currentBranch.id}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'promo_products' }, () => {
+          fetchStoreProducts(currentBranch.id).then((pList) => setProducts(pList));
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'promo_vouchers' }, () => {
+          fetchStoreVouchers(currentBranch.id).then((vList) => setVouchers(vList));
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [currentBranch]);
 
@@ -63,6 +79,10 @@ export const App: React.FC = () => {
     const nameLower = product.name.toLowerCase();
     return vouchers.some((v) => {
       if (v.isActive === false) return false;
+      // Jika voucher dikhususkan ke ID produk tertentu
+      if (v.applicableProductIds && v.applicableProductIds.length > 0) {
+        return v.applicableProductIds.includes(product.id);
+      }
       // Jika voucher sponsor brand (misal: Yakult atau Kanzler), HANYA produk bersangkutan yang bertanda kupon
       if (v.sponsorName) {
         const sLower = v.sponsorName.toLowerCase();
