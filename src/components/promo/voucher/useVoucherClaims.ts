@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { StoreVoucher } from '../../../types/storeTypes';
+import { supabase } from '../../../services/supabaseClient';
 
 export interface ClaimRecord {
   claimedAt: number;
@@ -44,6 +45,17 @@ export const useVoucherClaims = (onApplyVoucher: (v: StoreVoucher) => void) => {
     setClaims(newClaims);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newClaims));
     onApplyVoucher(v);
+
+    // Sinkronisasi realtime ke cloud: tambah claimed_count
+    try {
+      const nextClaimed = (v.claimedCount || 0) + 1;
+      supabase.from('promo_vouchers').update({
+        claimed_count: nextClaimed,
+        updated_at: new Date().toISOString()
+      }).eq('id', v.id).then();
+    } catch {
+      // Local fallback
+    }
   };
 
   return { claims, handleClaim };
