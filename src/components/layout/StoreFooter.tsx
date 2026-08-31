@@ -17,7 +17,7 @@ export const StoreFooter: React.FC<StoreFooterProps> = ({ branch }) => {
         Belanja sembako hemat, amanah & terpercaya. Pembayaran mudah langsung di tempat (COD) saat barang sampai.
       </p>
       <div className="text-[10px] text-slate-600 pt-2 flex items-center justify-center gap-1">
-        <span>© 2026 TokoBASMALAH • Mitra Usaha Sidogiri</span>
+        <span>© 2026 TokoBASMALAH</span>
       </div>
     </footer>
   );
