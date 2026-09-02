@@ -13,16 +13,17 @@ export const FALLBACK_BRANCHES: StoreBranch[] = [
 
 export const fetchStoreBranches = async (): Promise<StoreBranch[]> => {
   try {
-    const { data, error } = await supabase.from('branches').select('id, code, name, address, phone, delivery_hours, city, lat, lng');
+    const { data, error } = await supabase.from('branches').select('*');
     if (error || !data || data.length === 0) return FALLBACK_BRANCHES;
-    return data.map((b) => {
+    return data.map((b: any) => {
       const fallback = FALLBACK_BRANCHES.find((fb) => fb.code.toLowerCase() === (b.code || '').toLowerCase());
+      const branchPhone = (b.phone && b.phone.trim().length > 0) ? b.phone.trim() : (fallback?.phone || '081234567890');
       return {
         id: b.id,
         code: b.code,
         name: b.name,
         address: b.address || fallback?.address || '',
-        phone: b.phone || fallback?.phone || '081234567890',
+        phone: branchPhone,
         deliveryHours: b.delivery_hours || fallback?.deliveryHours || '07:00 - 20:30',
         city: b.city || fallback?.city || 'Jawa Timur',
         lat: b.lat ?? fallback?.lat,

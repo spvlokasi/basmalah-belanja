@@ -84,6 +84,13 @@ export const useStoreData = () => {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'promo_vouchers' }, () => {
           fetchStoreVouchers(currentBranch.id).then(setVouchers);
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'branches' }, () => {
+          fetchStoreBranches().then((list) => {
+            setBranches(list);
+            const found = list.find((b) => b.id === currentBranch.id || b.code.toLowerCase() === currentBranch.code.toLowerCase());
+            if (found) setCurrentBranch(found);
+          });
+        })
         .subscribe();
 
       return () => {
