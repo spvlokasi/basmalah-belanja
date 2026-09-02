@@ -13,10 +13,10 @@ export const fetchStoreBranches = async (): Promise<StoreBranch[]> => {
       name: b.name || '',
       address: b.address || '',
       phone: (b.phone || '').trim(),
-      deliveryHours: b.delivery_hours || '07:00 - 20:30',
-      city: b.city || 'Jawa Timur',
-      lat: b.lat != null ? Number(b.lat) : -7.1595,
-      lng: b.lng != null ? Number(b.lng) : 113.4735
+      deliveryHours: b.delivery_hours || '',
+      city: b.city || '',
+      lat: b.lat != null ? Number(b.lat) : undefined,
+      lng: b.lng != null ? Number(b.lng) : undefined
     }));
   } catch (e) {
     console.error('Error di fetchStoreBranches:', e);

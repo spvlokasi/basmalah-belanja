@@ -6,13 +6,10 @@ import { supabase } from '../services/supabaseClient';
 const EMPTY_BRANCH: StoreBranch = {
   id: '',
   code: '',
-  name: 'TokoBASMALAH',
+  name: '',
   address: '',
   phone: '',
-  deliveryHours: '07:00 - 20:30',
-  city: 'Jawa Timur',
-  lat: -7.1595,
-  lng: 113.4735
+  city: ''
 };
 
 const formatOfficialStoreParam = (name: string) => {
