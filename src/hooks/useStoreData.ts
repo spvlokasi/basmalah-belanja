@@ -1,22 +1,18 @@
 import { useState, useEffect } from 'react';
 import { StoreBranch, StoreProduct, StoreVoucher } from '../types/storeTypes';
-import { fetchStoreBranches, fetchStoreProducts, fetchStoreVouchers, FALLBACK_BRANCHES, FALLBACK_PRODUCTS, FALLBACK_VOUCHERS } from '../services/storeFetchService';
+import { fetchStoreBranches, fetchStoreProducts, fetchStoreVouchers } from '../services/storeFetchService';
 import { supabase } from '../services/supabaseClient';
 
-const getInitialBranch = (): StoreBranch => {
-  if (typeof window === 'undefined') return FALLBACK_BRANCHES[0];
-  const params = new URLSearchParams(window.location.search);
-  const tokoCode = params.get('toko') || params.get('cabang');
-  if (tokoCode) {
-    const cleanQuery = tokoCode.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const found = FALLBACK_BRANCHES.find((b) => {
-      const cleanCode = b.code.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const cleanName = b.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      return cleanCode === cleanQuery || cleanName.includes(cleanQuery) || cleanQuery.includes(cleanName) || cleanName.includes(cleanQuery.replace('tokobasmalah', ''));
-    });
-    if (found) return found;
-  }
-  return FALLBACK_BRANCHES[0];
+const EMPTY_BRANCH: StoreBranch = {
+  id: '',
+  code: '',
+  name: 'TokoBASMALAH',
+  address: '',
+  phone: '',
+  deliveryHours: '07:00 - 20:30',
+  city: 'Jawa Timur',
+  lat: -7.1595,
+  lng: 113.4735
 };
 
 const formatOfficialStoreParam = (name: string) => {
@@ -25,8 +21,8 @@ const formatOfficialStoreParam = (name: string) => {
 };
 
 export const useStoreData = () => {
-  const [branches, setBranches] = useState<StoreBranch[]>(FALLBACK_BRANCHES);
-  const [currentBranch, setCurrentBranch] = useState<StoreBranch>(getInitialBranch);
+  const [branches, setBranches] = useState<StoreBranch[]>([]);
+  const [currentBranch, setCurrentBranch] = useState<StoreBranch>(EMPTY_BRANCH);
   const [isLockedBranch, setIsLockedBranch] = useState(() => {
     if (typeof window === 'undefined') return false;
     const params = new URLSearchParams(window.location.search);
@@ -43,6 +39,8 @@ export const useStoreData = () => {
 
     fetchStoreBranches().then((list) => {
       setBranches(list);
+      if (list.length === 0) return;
+
       if (tokoCode) {
         const cleanQuery = tokoCode.toLowerCase().replace(/[^a-z0-9]/g, '');
         const found = list.find((b) => {
@@ -57,7 +55,11 @@ export const useStoreData = () => {
             const newUrl = `${window.location.pathname}?toko=${officialParam}`;
             window.history.replaceState(null, '', newUrl);
           }
+        } else {
+          setCurrentBranch(list[0]);
         }
+      } else {
+        setCurrentBranch(list[0]);
       }
     });
   }, []);
